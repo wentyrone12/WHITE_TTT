@@ -125,7 +125,7 @@ button:hover {
 /* RESET */
 .reset-btn {
   width: 15%;
-  position:absolute;
+  position:fixed;
   right:40%;
   bottom:10px;
   margin-bottom: 15px;
@@ -133,9 +133,9 @@ button:hover {
 
 .ready-btn{
   width: 40%;
-  position:absolute;
+  position:fixed;
+  bottom:25px;
   left:15px;
-  margin-bottom: 15px;
   background: linear-gradient(270deg, cyan, rgb(83, 240, 83), gold, cyan);
     background-size: 600% 600%;
     animation: bgMove 8s ease infinite;
