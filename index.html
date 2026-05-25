@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WHITE_TTT</title>
+
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="logo.png">
+</head>
+
+<body>
+
+
+  <!-- BACKGROUND GLOW -->
+  <div class="bg"></div>
+
+  <!-- LOBBY -->
+  <div id="lobby" class="lobby">
+
+    <div class="card">
+      <h2>WHITE_TTT</h2>
+      <p class="subtitle">Create or join a room to play</p>
+
+      <input id="roomInput" placeholder="Enter Room ID">
+
+      <div class="btn-group">
+        <button id="createBtn">Create Room</button>
+        <button id="joinBtn">Join Room</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- GAME -->
+  <div class="container hidden" id="game">
+
+     <button id="chatToggle" class="chat-fab">💬</button>
+
+    <div class="top-bar">
+      <p id="roomDisplay">Room: ---</p>
+      <button id="quitBtn" class="reset-btn" style="background-color: red;">Quit</button>
+      <h1>Tic Tac Toe</h1>
+      <p id="status">Waiting...</p>
+      <p id="readyStatus" style="color: #00ffcc; font-weight: bold;"></p>
+    </div>
+
+    <div class="board">
+      <div class="cell" data-index="0"></div>
+      <div class="cell" data-index="1"></div>
+      <div class="cell" data-index="2"></div>
+      <div class="cell" data-index="3"></div>
+      <div class="cell" data-index="4"></div>
+      <div class="cell" data-index="5"></div>
+      <div class="cell" data-index="6"></div>
+      <div class="cell" data-index="7"></div>
+      <div class="cell" data-index="8"></div>
+    </div>
+
+    <button id="readyBtn" class="ready-btn" style="background-color: #00ff99; color: black;">Ready</button>
+
+    <!-- CHAT -->
+    <div id="chatPanel" class="chat-panel hidden">
+
+      <div class="chat-header">
+        <span>Room Chat</span>
+        <button id="closeChat" style="width: 30px;">✖</button>
+      </div>
+
+      <div id="chatMessages" class="chat-messages""></div>
+
+      <div class="chat-input">
+        <input id="chatText" placeholder="Type message...">
+        <button id="sendChat">Send</button>
+      </div>
+
+    </div>
+
+
+
+  </div>
+
+  <div class="nametag">Made by Wenxyz</div>
+
+  <audio id="clickSound" src="click.mp3" preload="auto"></audio>
+  <audio id="winSound" src="win.mp3" preload="auto"></audio>
+  <audio id="finalWinSound" src="finalwin.mp3" preload="auto"></audio>
+  <audio id="drawSound" src="draw.mp3" preload="auto"></audio>
+
+  <script type="module" src="script.js"></script>
+
+</body>
+
+</html>
