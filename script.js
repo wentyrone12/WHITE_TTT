@@ -22,6 +22,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
+function generateRoomId() {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
 function playSound(sound, delay = 0, duration = null) {
   setTimeout(() => {
     sound.currentTime = 2;
@@ -82,45 +86,53 @@ window.onload = () => {
 
   // CREATE ROOM
   createBtn.onclick = async () => {
-    roomId = roomInput.value.trim();
-    if (!roomId) return alert("Enter Room ID");
 
-    player = "X";
+  roomId = generateRoomId(); // 🔥 AUTO ID
+  player = "X";
 
-    await set(ref(db, "rooms/" + roomId), {
-      board: Array(9).fill(""),
-      turn: "",
-      winner: "",
-      ready: { X: false, O: false },
-      players: { X: username, O: "" },
-      scores: { X: 0, O: 0 },
-      matchCount: 0, // 🔥 NEW
-      maxMatches: 10, // 🔥 NEW
-      chat: [],
-      started: false
-    });
+  await set(ref(db, "rooms/" + roomId), {
+    board: Array(9).fill(""),
+    turn: "",
+    winner: "",
+    ready: { X: false, O: false },
+    players: { X: username, O: "" },
+    scores: { X: 0, O: 0 },
+    matchCount: 0,
+    maxMatches: 10,
+    chat: [],
+    started: false
+  });
 
-    startGame();
-  };
+  alert("✅ Room Created!\nRoom ID: " + roomId); // 🔥 SHOW ID
+
+  startGame();
+};
 
   // JOIN ROOM
   joinBtn.onclick = async () => {
-    roomId = roomInput.value.trim();
-    if (!roomId) return alert("Enter Room ID");
+  roomId = roomInput.value.trim();
+  if (!roomId) return alert("Enter Room ID");
 
-    const roomRef = ref(db, "rooms/" + roomId);
-    const snap = await get(roomRef);
+  const roomRef = ref(db, "rooms/" + roomId);
+  const snap = await get(roomRef);
 
-    if (!snap.exists()) return alert("❌ No room found!");
+  if (!snap.exists()) return alert("❌ No room found!");
 
-    player = "O";
+  const data = snap.val();
 
-    await update(roomRef, {
-      "players/O": username
-    });
+  // 🔥 CHECK IF FULL
+  if (data.players && data.players.X && data.players.O) {
+    return alert("🚫 Room is FULL!");
+  }
 
-    startGame();
-  };
+  player = "O";
+
+  await update(roomRef, {
+    "players/O": username
+  });
+
+  startGame();
+};
 
   function startGame() {
     lobby.style.display = "none";
