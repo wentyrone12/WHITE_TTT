@@ -26,6 +26,10 @@ function generateRoomId() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
+const chatNotif = document.getElementById("chatNotif");
+
+let lastChatLength = 0;
+
 function playSound(sound, delay = 0, duration = null) {
   setTimeout(() => {
     sound.currentTime = 2;
@@ -78,6 +82,11 @@ window.onload = () => {
   // ✅ CHAT TOGGLE FIX
   chatToggle.onclick = () => {
     chatPanel.classList.toggle("hidden");
+
+    // 🔥 REMOVE RED DOT PAG BINUKSAN
+    if (!chatPanel.classList.contains("hidden")) {
+      chatNotif.classList.add("hidden");
+    }
   };
 
   closeChat.onclick = () => {
@@ -87,52 +96,52 @@ window.onload = () => {
   // CREATE ROOM
   createBtn.onclick = async () => {
 
-  roomId = generateRoomId(); // 🔥 AUTO ID
-  player = "X";
+    roomId = generateRoomId(); // 🔥 AUTO ID
+    player = "X";
 
-  await set(ref(db, "rooms/" + roomId), {
-    board: Array(9).fill(""),
-    turn: "",
-    winner: "",
-    ready: { X: false, O: false },
-    players: { X: username, O: "" },
-    scores: { X: 0, O: 0 },
-    matchCount: 0,
-    maxMatches: 10,
-    chat: [],
-    started: false
-  });
+    await set(ref(db, "rooms/" + roomId), {
+      board: Array(9).fill(""),
+      turn: "",
+      winner: "",
+      ready: { X: false, O: false },
+      players: { X: username, O: "" },
+      scores: { X: 0, O: 0 },
+      matchCount: 0,
+      maxMatches: 10,
+      chat: [],
+      started: false
+    });
 
-  alert("✅ Room Created!\nRoom ID: " + roomId); // 🔥 SHOW ID
+    alert("✅ Room Created!\nRoom ID: " + roomId); // 🔥 SHOW ID
 
-  startGame();
-};
+    startGame();
+  };
 
   // JOIN ROOM
   joinBtn.onclick = async () => {
-  roomId = roomInput.value.trim();
-  if (!roomId) return alert("Enter Room ID");
+    roomId = roomInput.value.trim();
+    if (!roomId) return alert("Enter Room ID");
 
-  const roomRef = ref(db, "rooms/" + roomId);
-  const snap = await get(roomRef);
+    const roomRef = ref(db, "rooms/" + roomId);
+    const snap = await get(roomRef);
 
-  if (!snap.exists()) return alert("❌ No room found!");
+    if (!snap.exists()) return alert("❌ No room found!");
 
-  const data = snap.val();
+    const data = snap.val();
 
-  // 🔥 CHECK IF FULL
-  if (data.players && data.players.X && data.players.O) {
-    return alert("🚫 Room is FULL!");
-  }
+    // 🔥 CHECK IF FULL
+    if (data.players && data.players.X && data.players.O) {
+      return alert("🚫 Room is FULL!");
+    }
 
-  player = "O";
+    player = "O";
 
-  await update(roomRef, {
-    "players/O": username
-  });
+    await update(roomRef, {
+      "players/O": username
+    });
 
-  startGame();
-};
+    startGame();
+  };
 
   function startGame() {
     lobby.style.display = "none";
@@ -325,8 +334,20 @@ window.onload = () => {
       gameActive = true;
 
       // CHAT DISPLAY
+      // CHAT DISPLAY
+      const chats = data.chat || [];
+
+      // 🔥 CHECK NEW MESSAGE
+      if (chats.length > lastChatLength) {
+        if (chatPanel.classList.contains("hidden")) {
+          chatNotif.classList.remove("hidden");
+        }
+      }
+
+      lastChatLength = chats.length;
+
       chatMessages.innerHTML = "";
-      (data.chat || []).forEach(msg => {
+      chats.forEach(msg => {
         const div = document.createElement("div");
         div.textContent = `${msg.name}: ${msg.text}`;
         chatMessages.appendChild(div);
@@ -335,102 +356,103 @@ window.onload = () => {
       chatMessages.scrollTop = chatMessages.scrollHeight;
     });
 
-    // CLICK CELL
-    cells.forEach(cell => {
-      cell.onclick = async () => {
-        if (!gameActive) return;
 
-        const index = cell.dataset.index;
-        const roomRef = ref(db, "rooms/" + roomId);
-        const snap = await get(roomRef);
-        const data = snap.val();
+  // CLICK CELL
+  cells.forEach(cell => {
+    cell.onclick = async () => {
+      if (!gameActive) return;
 
-        if (!data || data.board[index] !== "" || data.turn !== player) return;
+      const index = cell.dataset.index;
+      const roomRef = ref(db, "rooms/" + roomId);
+      const snap = await get(roomRef);
+      const data = snap.val();
 
-        data.board[index] = player;
+      if (!data || data.board[index] !== "" || data.turn !== player) return;
 
-        const winner = checkWinner(data.board);
-        const draw = isDraw(data.board);
+      data.board[index] = player;
 
-        if (winner) {
-          await update(roomRef, {
-            board: data.board,
-            winner: winner
-          });
-        } else if (draw) {
-          await update(roomRef, {
-            board: data.board,
-            winner: "draw"
-          });
-        } else {
-          await update(roomRef, {
-            board: data.board,
-            turn: player === "X" ? "O" : "X"
-          });
-        }
+      const winner = checkWinner(data.board);
+      const draw = isDraw(data.board);
 
-        playSound(clickSound);
-      };
-    });
-  }
-
-  function updateBoard(board) {
-    cells.forEach((c, i) => c.textContent = board[i]);
-  }
-
-  function highlightWin(combo) {
-    combo.forEach(i => {
-      cells[i].classList.add("win");
-    });
-  }
-
-
-
-  function checkWinner(b) {
-    const w = [
-      [0, 1, 2], [3, 4, 5], [6, 7, 8],
-      [0, 3, 6], [1, 4, 7], [2, 5, 8],
-      [0, 4, 8], [2, 4, 6]
-    ];
-
-    for (let combo of w) {
-      const [a, b1, c1] = combo;
-      if (b[a] && b[a] === b[b1] && b[a] === b[c1]) {
-
-        highlightWin(combo); // 🔥 highlight cells
-        playSound(winSound, 0); // 0.3 seconds delay    // 🔊 sound
-
-        return b[a];
+      if (winner) {
+        await update(roomRef, {
+          board: data.board,
+          winner: winner
+        });
+      } else if (draw) {
+        await update(roomRef, {
+          board: data.board,
+          winner: "draw"
+        });
+      } else {
+        await update(roomRef, {
+          board: data.board,
+          turn: player === "X" ? "O" : "X"
+        });
       }
+
+      playSound(clickSound);
+    };
+  });
+}
+
+function updateBoard(board) {
+  cells.forEach((c, i) => c.textContent = board[i]);
+}
+
+function highlightWin(combo) {
+  combo.forEach(i => {
+    cells[i].classList.add("win");
+  });
+}
+
+
+
+function checkWinner(b) {
+  const w = [
+    [0, 1, 2], [3, 4, 5], [6, 7, 8],
+    [0, 3, 6], [1, 4, 7], [2, 5, 8],
+    [0, 4, 8], [2, 4, 6]
+  ];
+
+  for (let combo of w) {
+    const [a, b1, c1] = combo;
+    if (b[a] && b[a] === b[b1] && b[a] === b[c1]) {
+
+      highlightWin(combo); // 🔥 highlight cells
+      playSound(winSound, 0); // 0.3 seconds delay    // 🔊 sound
+
+      return b[a];
     }
-    return "";
   }
+  return "";
+}
 
 
 
-  // SEND CHAT
-  sendChat.onclick = async () => {
-    if (!chatText.value.trim() || !roomId) return;
+// SEND CHAT
+sendChat.onclick = async () => {
+  if (!chatText.value.trim() || !roomId) return;
 
-    const roomRef = ref(db, "rooms/" + roomId);
-    const snap = await get(roomRef);
-    const data = snap.val();
+  const roomRef = ref(db, "rooms/" + roomId);
+  const snap = await get(roomRef);
+  const data = snap.val();
 
-    const newChat = data.chat || [];
+  const newChat = data.chat || [];
 
-    newChat.push({
-      name: username,
-      text: chatText.value
-    });
+  newChat.push({
+    name: username,
+    text: chatText.value
+  });
 
-    await update(roomRef, {
-      chat: newChat
-    });
+  await update(roomRef, {
+    chat: newChat
+  });
 
-    chatText.value = "";
-  };
-
+  chatText.value = "";
 };
+
+  };
 
 function isDraw(board) {
   return board.every(cell => cell !== "");
