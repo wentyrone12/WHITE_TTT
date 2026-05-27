@@ -329,3 +329,33 @@ button:hover {
   font-size:12px;
   color:gray;
 }
+
+.chat-fab {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  font-size: 22px;
+  padding: 12px 16px;
+  border-radius: 50%;
+  background: #00ff99;
+  border: none;
+  cursor: pointer;
+  position: fixed;
+}
+
+/* 🔴 RED DOT */
+.chat-notif {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 10px;
+  height: 10px;
+  background: red;
+  border-radius: 50%;
+  box-shadow: 0 0 8px red;
+}
+
+/* hidden */
+.hidden {
+  display: none;
+}
