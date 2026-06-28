@@ -37,7 +37,7 @@ body {
   padding: 20px;
   border-radius: 15px;
   text-align: center;
-  box-shadow: 0 0 20px rgba(0,255,150,0.2);
+  box-shadow: 0 0 20px rgba(0, 255, 150, 0.2);
 }
 
 .subtitle {
@@ -126,30 +126,34 @@ button:hover {
 /* RESET */
 .reset-btn {
   width: 15%;
-  position:fixed;
-  right:40%;
-  bottom:10px;
+  position: fixed;
+  right: 40%;
+  bottom: 10px;
   margin-bottom: 15px;
+  z-index: 9999px;
 }
 
-.ready-btn{
+.ready-btn {
   width: 40%;
-  position:fixed;
-  bottom:25px;
-  left:15px;
+  position: fixed;
+  bottom: 25px;
+  left: 15px;
   background: linear-gradient(270deg, cyan, rgb(83, 240, 83), gold, cyan);
-    background-size: 600% 600%;
-    animation: bgMove 8s ease infinite;
-    transition: 0.2s ease;
-    text-align: center;
+  background-size: 600% 600%;
+  animation: bgMove 8s ease infinite;
+  transition: 0.2s ease;
+  text-align: center;
 }
+
 @keyframes bgMove {
   0% {
     background-position: 0% 50%;
   }
+
   50% {
     background-position: 100% 50%;
   }
+
   100% {
     background-position: 0% 50%;
   }
@@ -201,10 +205,11 @@ button:hover {
   .chat-messages {
     height: 100px;
   }
-  #roomDisplay{
-    position:fixed;
-    top:20px;
-    left:20px;
+
+  #roomDisplay {
+    position: fixed;
+    top: 20px;
+    left: 20px;
   }
 }
 
@@ -220,7 +225,7 @@ button:hover {
   border-radius: 50%;
   font-size: 20px;
   cursor: pointer;
-  box-shadow: 0 0 15px rgba(0,255,150,0.4);
+  box-shadow: 0 0 15px rgba(0, 255, 150, 0.4);
 }
 
 /* CHAT PANEL */
@@ -234,7 +239,7 @@ button:hover {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
 }
 
 .hidden {
@@ -260,9 +265,9 @@ button:hover {
   flex-direction: column;
   gap: 8px;
   background: url(bgmess.jpg);
-  background-size:cover;
-  background-position:center;
-  backdrop-filter:opacity(0);
+  background-size: cover;
+  background-position: center;
+  backdrop-filter: opacity(0);
 }
 
 /* BUBBLES */
@@ -309,7 +314,7 @@ button:hover {
 }
 
 .cell.win {
-  background: rgba(0,255,150,0.2);
+  background: rgba(0, 255, 150, 0.2);
   color: #00ff99;
   font-size: 2rem;
   font-weight: bold;
@@ -323,11 +328,12 @@ button:hover {
   box-shadow: 0 0 10px #00ff99;
   transform-origin: left center;
 }
-.nametag{
-  position:absolute;
+
+.nametag {
+  position: absolute;
   bottom: 30px;
-  font-size:12px;
-  color:gray;
+  font-size: 12px;
+  color: gray;
 }
 
 .chat-fab {
@@ -358,4 +364,18 @@ button:hover {
 /* hidden */
 .hidden {
   display: none;
+}
+
+.cell.win {
+  background: rgba(0, 255, 150, 0.4);
+  color: #00ff99;
+  box-shadow: 0 0 15px #00ff99;
+  transform: scale(1.1);
+}
+
+.cell.lose {
+  background: rgba(255, 0, 0, 0.4);
+  color: white;
+  box-shadow: 0 0 15px red;
+  transform: scale(1.05);
 }

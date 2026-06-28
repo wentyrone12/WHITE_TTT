@@ -61,7 +61,6 @@ window.onload = () => {
 
   const statusText = document.getElementById("status");
   const roomDisplay = document.getElementById("roomDisplay");
-  const readyBtn = document.getElementById("readyBtn");
   const quitBtn = document.getElementById("quitBtn");
 
   const chatToggle = document.getElementById("chatToggle");
@@ -73,6 +72,8 @@ window.onload = () => {
   const chatMessages = document.getElementById("chatMessages");
 
   const cells = document.querySelectorAll(".cell");
+
+  let isReady = false;
 
   let username = prompt("Enter your name:");
   let roomId = "";
@@ -237,15 +238,20 @@ window.onload = () => {
       if (data.winner) {
         gameActive = false;
 
+        document.body.classList.remove("win", "lose", "draw");
+
+        const newMatchCount = (data.matchCount || 0) + 1;
+        const maxMatches = data.maxMatches || 10;
+
+        // DRAW
         if (data.winner === "draw") {
-          gameActive = false;
-
-          statusText.innerHTML = "it.s a DRAW!";
-
-          // 🔊 PLAY DRAW SOUND
-          playSound(drawSound, 0, 2500); // 🔥 4 seconds lang
+          document.body.classList.add("draw");
+          statusText.innerHTML = "It's a DRAW!";
+          playSound(drawSound, 0, 2500);
 
           setTimeout(async () => {
+            document.body.classList.remove("win", "lose", "draw");
+
             await update(ref(db, "rooms/" + roomId), {
               board: Array(9).fill(""),
               turn: "",
@@ -253,20 +259,35 @@ window.onload = () => {
               ready: { X: false, O: false },
               started: false
             });
-          }, DRAW_DELAY);
+          }, 1000);
 
           return;
         }
-        gameActive = false;
 
         const winnerName = data.players[data.winner];
         statusText.innerHTML = `${winnerName} (${data.winner}) wins 🎉`;
 
-        const newMatchCount = (data.matchCount || 0) + 1;
-        const maxMatches = data.maxMatches || 10;
+        // WIN / LOSE EFFECT
+        const combo = data.winCombo;
 
-        // 🔥 FINAL WINNER CHECK
+        cells.forEach(c => c.classList.remove("win", "lose"));
+
+        if (combo && combo.length) {
+          for (let i of combo) {
+            if (data.winner === player) {
+              cells[i].classList.add("win");   // 🟢 ONLY WINNING 3 CELLS
+            } else {
+              cells[i].classList.add("lose");  // 🔴 ONLY WINNING 3 CELLS
+            }
+          }
+        }
+
+        playSound(winSound, 0);
+
+        // FINAL WIN CHECK
         if (newMatchCount >= maxMatches) {
+
+          gameActive = false;
 
           let finalWinner = data.scores.X > data.scores.O ? "X" : "O";
           let finalName = data.players[finalWinner];
@@ -275,39 +296,50 @@ window.onload = () => {
 
           playSound(finalWinSound, 500);
 
-          setTimeout(async () => {
-            const playAgain = confirm("🏁 Game Over!\n\nPress OK to Play Again\nPress Cancel to Exit");
+          // 🚫 STOP AUTO RESET - WAIT MODE
+          await update(ref(db, "rooms/" + roomId), {
+            turn: "",
+            winner: "final",
+          });
 
-            const roomRef = ref(db, "rooms/" + roomId);
+          setTimeout(async () => {
+
+            const playAgain = confirm("Game Over!\nPlay Again?");
 
             if (playAgain) {
-              // ✅ AUTO RESTART GAME
-              await update(roomRef, {
+
+              await update(ref(db, "rooms/" + roomId), {
                 scores: { X: 0, O: 0 },
                 matchCount: 0,
                 board: Array(9).fill(""),
-                winner: "",
                 turn: "",
+                winner: "",
+                winCombo: [],
                 ready: { X: false, O: false },
                 started: false
               });
 
             } else {
-              // ❌ DELETE ROOM
-              await remove(roomRef);
-
-              alert("Room deleted.");
-              location.reload();
+              // ❗ stay or delete optional
+              const leave = confirm("Leave room?");
+              if (leave) {
+                await remove(ref(db, "rooms/" + roomId));
+                location.reload();
+              }
             }
 
-          }, 2000);
+          }, 800);
 
           return;
         }
-
-        // 🔥 CONTINUE NEXT ROUND
+        // NEXT ROUND
         setTimeout(async () => {
-          cells.forEach(c => c.classList.remove("win"));
+
+          cells.forEach(c => {
+            c.classList.remove("win", "lose");
+          });
+
+          document.body.classList.remove("win", "lose", "draw");
 
           await update(ref(db, "rooms/" + roomId), {
             [`scores/${data.winner}`]: data.scores[data.winner] + 1,
@@ -315,9 +347,11 @@ window.onload = () => {
             board: Array(9).fill(""),
             turn: "",
             winner: "",
+            winCombo: [],
             ready: { X: false, O: false },
             started: false
           });
+
         }, 1500);
 
         return;
@@ -357,102 +391,113 @@ window.onload = () => {
     });
 
 
-  // CLICK CELL
-  cells.forEach(cell => {
-    cell.onclick = async () => {
-      if (!gameActive) return;
+    // CLICK CELL
+    cells.forEach(cell => {
+      cell.onclick = async () => {
+        if (!gameActive) return;
 
-      const index = cell.dataset.index;
-      const roomRef = ref(db, "rooms/" + roomId);
-      const snap = await get(roomRef);
-      const data = snap.val();
+        const index = cell.dataset.index;
+        const roomRef = ref(db, "rooms/" + roomId);
+        const snap = await get(roomRef);
+        const data = snap.val();
 
-      if (!data || data.board[index] !== "" || data.turn !== player) return;
+        if (!data || data.board[index] !== "" || data.turn !== player) return;
 
-      data.board[index] = player;
+        data.board[index] = player;
 
-      const winner = checkWinner(data.board);
-      const draw = isDraw(data.board);
+        const combo = checkWinner(data.board);
+        const draw = isDraw(data.board);
 
-      if (winner) {
-        await update(roomRef, {
-          board: data.board,
-          winner: winner
-        });
-      } else if (draw) {
-        await update(roomRef, {
-          board: data.board,
-          winner: "draw"
-        });
-      } else {
-        await update(roomRef, {
-          board: data.board,
-          turn: player === "X" ? "O" : "X"
-        });
-      }
+        if (combo) {
+          await update(roomRef, {
+            board: data.board,
+            winner: player, // temporary, aayusin sa listener
+            winCombo: combo
+          });
+        } else if (draw) {
+          await update(roomRef, {
+            board: data.board,
+            winner: "draw"
+          });
+        } else {
+          await update(roomRef, {
+            board: data.board,
+            turn: player === "X" ? "O" : "X"
+          });
+        }
 
-      playSound(clickSound);
-    };
-  });
-}
-
-function updateBoard(board) {
-  cells.forEach((c, i) => c.textContent = board[i]);
-}
-
-function highlightWin(combo) {
-  combo.forEach(i => {
-    cells[i].classList.add("win");
-  });
-}
-
-
-
-function checkWinner(b) {
-  const w = [
-    [0, 1, 2], [3, 4, 5], [6, 7, 8],
-    [0, 3, 6], [1, 4, 7], [2, 5, 8],
-    [0, 4, 8], [2, 4, 6]
-  ];
-
-  for (let combo of w) {
-    const [a, b1, c1] = combo;
-    if (b[a] && b[a] === b[b1] && b[a] === b[c1]) {
-
-      highlightWin(combo); // 🔥 highlight cells
-      playSound(winSound, 0); // 0.3 seconds delay    // 🔊 sound
-
-      return b[a];
-    }
+        playSound(clickSound);
+      };
+    });
   }
-  return "";
-}
 
+  function highlightWin(combo) {
+    combo.forEach(i => {
+      cells[i].classList.add("win");
+    });
 
+    // auto remove after 1 second (smooth effect)
+    setTimeout(() => {
+      combo.forEach(i => {
+        cells[i].classList.remove("win");
+      });
+    }, 1000);
+  }
 
-// SEND CHAT
-sendChat.onclick = async () => {
-  if (!chatText.value.trim() || !roomId) return;
+  function updateBoard(board) {
+    cells.forEach((c, i) => {
+      c.textContent = board[i];
+      c.classList.remove("win"); // 🔥 IMPORTANT RESET EVERY UPDATE
+    });
+  }
 
-  const roomRef = ref(db, "rooms/" + roomId);
-  const snap = await get(roomRef);
-  const data = snap.val();
+  function highlightWin(combo) {
+    combo.forEach(i => {
+      cells[i].classList.add("win");
+    });
+  }
 
-  const newChat = data.chat || [];
+  function checkWinner(b) {
+    const w = [
+      [0, 1, 2], [3, 4, 5], [6, 7, 8],
+      [0, 3, 6], [1, 4, 7], [2, 5, 8],
+      [0, 4, 8], [2, 4, 6]
+    ];
 
-  newChat.push({
-    name: username,
-    text: chatText.value
-  });
+    for (let combo of w) {
+      const [a, b1, c1] = combo;
 
-  await update(roomRef, {
-    chat: newChat
-  });
+      if (b[a] && b[a] === b[b1] && b[a] === b[c1]) {
+        return combo; // 🔥 FIX: return ONLY combo, not winner yet
+      }
+    }
 
-  chatText.value = "";
-};
+    return null;
+  }
 
+  // SEND CHAT
+  sendChat.onclick = async () => {
+    if (!chatText.value.trim() || !roomId) return;
+
+    const roomRef = ref(db, "rooms/" + roomId);
+    const snap = await get(roomRef);
+    const data = snap.val();
+
+    const newChat = data.chat || [];
+
+    newChat.push({
+      name: username,
+      text: chatText.value
+    });
+
+    await update(roomRef, {
+      chat: newChat
+    });
+
+    chatText.value = "";
   };
+
+};
 
 function isDraw(board) {
   return board.every(cell => cell !== "");
