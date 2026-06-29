@@ -16,14 +16,67 @@
   <!-- BACKGROUND GLOW -->
   <div class="bg"></div>
 
+  <div class="floating-bg">
+
+    <span>X</span>
+    <span>O</span>
+    <span>X</span>
+    <span>O</span>
+    <span>O</span>
+    <span>X</span>
+    <span>X</span>
+    <span>O</span>
+    <span>X</span>
+    <span>O</span>
+    <span>X</span>
+    <span>O</span>
+    <span>X</span>
+    <span>O</span>
+
+  </div>
+
   <!-- LOBBY -->
+
+  <div id="popup" class="popup">
+
+    <div class="popup-card">
+
+      <h1 class="popup-logo">WHITE_TTT</h1>
+
+      <p id="popupTitle">Enter your name</p>
+
+      <input id="popupInput" type="text">
+
+      <div id="popupRoom" style="display:none;">
+        <h3 id="generatedRoom"></h3>
+
+        <button id="copyRoomBtn">
+          📋 Copy Room ID
+        </button>
+      </div>
+
+      <div class="popupButtons">
+
+        <button id="popupCancel">
+          Cancel
+        </button>
+
+        <button id="popupOK">
+          Continue
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
   <div id="lobby" class="lobby">
 
     <div class="card">
       <h2>WHITE_TTT</h2>
       <p class="subtitle">Create or join a room to play</p>
-
-      <input id="roomInput" placeholder="Enter Room ID">
 
       <div class="btn-group">
         <button id="createBtn">Create Room</button>
@@ -48,7 +101,17 @@
       <p id="roomDisplay">Room: ---</p>
       <button id="quitBtn" class="reset-btn" style="background-color: red;">Quit</button>
       <p id="status">Waiting...</p>
-      <p id="readyStatus" style="color: #00ffcc; font-weight: bold;"></p>
+      <div id="readyStatus" class="ready-status">
+
+        <div class="ready-player">
+          <span id="playerXReady">❌ Player X</span>
+        </div>
+
+        <div class="ready-player">
+          <span id="playerOReady">❌ Player O</span>
+        </div>
+
+      </div>
     </div>
 
     <div class="board">
