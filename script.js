@@ -357,30 +357,12 @@ window.onload = () => {
 
       }
 
-      if (!data.ready.X || !data.ready.O) {
-        gameActive = false;
-
-        const opponent = player === "X" ? "O" : "X";
-
-        if (data.ready[player]) {
-          statusText.textContent = "You are READY ✔";
-          readyStatus.textContent = data.ready[opponent]
-            ? "Your opponent is READY ✔"
-            : "Waiting for opponent...";
-        } else {
-          statusText.textContent = "Click READY to start";
-          readyStatus.textContent = "";
-        }
-
-        return;
-      }
-
-      if (data.ready.X && data.ready.O && !data.turn) {
+      if (data.ready.X && data.ready.O && !data.started) {
 
         const roomSnap = await get(roomRef);
         const latest = roomSnap.val();
 
-        if (latest.turn) return; // 🔒 someone already set it
+        if (latest.started) return;
 
         const randomTurn = Math.random() < 0.5 ? "X" : "O";
 
@@ -392,13 +374,107 @@ window.onload = () => {
         return;
       }
 
+      // WAIT UNTIL BOTH READY
+      if (!data.ready.X || !data.ready.O) {
+
+        gameActive = false;
+
+        statusText.textContent = data.ready[player]
+          ? "Waiting for opponent..."
+          : "Click READY to start";
+
+        return;
+      }
+
+      // BOTH READY -> START GAME
+      if (!data.started) {
+
+        if (player === "X") {
+
+          const randomTurn = Math.random() < 0.5 ? "X" : "O";
+
+          await update(roomRef, {
+            started: true,
+            turn: randomTurn
+          });
+
+        }
+
+        return;
+      }
+
+      if (!data.turn) return;
+
       // WIN FIX
-      if (data.winner) {
+      if (data.winner === "final") {
+
+        gameActive = false;
+
+        const finalWinner =
+          data.scores.X > data.scores.O
+            ? data.players.X
+            : data.scores.O > data.scores.X
+              ? data.players.O
+              : "DRAW";
+
+        statusText.innerHTML = `🏆 FINAL WINNER : ${finalWinner}`;
+
+        if (data.winCombo) {
+
+          cells.forEach(c => c.classList.remove("win", "lose"));
+
+          data.winCombo.forEach(i => {
+            if (player === data.winnerPlayer) {
+              cells[i].classList.add("win");
+            } else {
+              cells[i].classList.add("lose");
+            }
+          });
+
+        }
+
+        playSound(finalWinSound, 0);
+
+        setTimeout(async () => {
+
+          const playAgain = confirm(`🏆 ${finalWinner}\n\nPlay Again?`);
+
+          if (player === "X") {
+
+            if (playAgain) {
+
+              await update(roomRef, {
+                board: Array(9).fill(""),
+                turn: "",
+                winner: "",
+                winnerPlayer: "",
+                winCombo: [],
+                ready: { X: false, O: false },
+                started: false,
+                scores: { X: 0, O: 0 },
+                matchCount: 0
+              });
+
+            } else {
+
+              await remove(roomRef);
+
+            }
+
+          }
+
+        }, 2000);
+
+        return;
+      }
+
+      if (data.winner && data.winner !== "final") {
+
         gameActive = false;
 
         document.body.classList.remove("win", "lose", "draw");
 
-        const newMatchCount = (data.matchCount || 0) + 1;
+        const newMatchCount = data.matchCount + 1;
         const maxMatches = data.maxMatches || 10;
 
         // DRAW
@@ -447,51 +523,65 @@ window.onload = () => {
 
           gameActive = false;
 
-          let finalWinner = data.scores.X > data.scores.O ? "X" : "O";
-          let finalName = data.players[finalWinner];
+          await update(roomRef, {
+            [`scores/${data.winner}`]: data.scores[data.winner] + 1,
+            matchCount: newMatchCount,
+            winner: "final",
+            winnerPlayer: data.winner,
+            winCombo: data.winCombo
+          });
 
-          statusText.innerHTML = `🏆 FINAL WINNER: ${finalName} (${finalWinner})`;
+          statusText.innerHTML =
+            `🏆 FINAL WINNER: ${winnerName}`;
 
           playSound(finalWinSound, 500);
 
-          // 🚫 STOP AUTO RESET - WAIT MODE
-          await update(ref(db, "rooms/" + roomId), {
-            turn: "",
-            winner: "final",
-          });
-
           setTimeout(async () => {
 
-            const playAgain = confirm("Game Over!\nPlay Again?");
+            const playAgain = confirm("Game Over!\n\nPlay Again?");
 
             if (playAgain) {
 
-              await update(ref(db, "rooms/" + roomId), {
+              await update(roomRef, {
+
                 scores: { X: 0, O: 0 },
-                matchCount: 0,
+
                 board: Array(9).fill(""),
+
                 turn: "",
+
                 winner: "",
+
                 winCombo: [],
-                ready: { X: false, O: false },
+
+                matchCount: 0,
+
+                ready: {
+                  X: false,
+                  O: false
+                },
+
                 started: false
+
               });
 
             } else {
-              // ❗ stay or delete optional
-              const leave = confirm("Leave room?");
-              if (leave) {
-                await remove(ref(db, "rooms/" + roomId));
-                location.reload();
-              }
+
+              await remove(roomRef);
+
+              location.reload();
+
             }
 
-          }, 800);
+          }, 2000);
 
           return;
+
         }
         // NEXT ROUND
         setTimeout(async () => {
+
+          if (player !== "X") return;
 
           cells.forEach(c => {
             c.classList.remove("win", "lose");
@@ -511,7 +601,6 @@ window.onload = () => {
           });
 
         }, 1500);
-
         return;
       }
 
@@ -604,8 +693,10 @@ window.onload = () => {
 
   function updateBoard(board) {
     cells.forEach((c, i) => {
-      c.textContent = board[i];
-      c.classList.remove("win"); // 🔥 IMPORTANT RESET EVERY UPDATE
+      c.textContent = board[i] || "";
+
+      // 🔥 ALWAYS RESET COLORS EVERY SYNC
+      c.classList.remove("win", "lose");
     });
   }
 
